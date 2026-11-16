@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARCHIB – databáze architektů</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ARCHIB">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1f;--mut:#6b6b70;--line:#dedcd6;--acc:#9a3412;--acc2:#fde7d9;--chip:#ecebe6}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.4 "Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--bg)}
+header{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;padding:10px 16px}
+header h1{font-size:18px;margin:0;letter-spacing:.5px}
+header h1 span{color:var(--acc)}
+#q{flex:1;max-width:520px;font-size:15px;padding:8px 12px;border:1px solid var(--line);border-radius:8px}
+.tabs button{font-size:15px;border:1px solid var(--line);background:#fff;padding:7px 14px;border-radius:8px;cursor:pointer}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#info{color:var(--mut);font-size:13px;margin-left:auto}
+main{display:flex;min-height:calc(100vh - 56px)}
+aside{width:290px;flex:none;border-right:1px solid var(--line);padding:12px 14px;overflow:auto;height:calc(100vh - 56px);position:sticky;top:56px;background:#fbfaf8}
+aside h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);margin:16px 0 6px}
+.grp{margin:2px 0}
+.grp>.gh{cursor:pointer;display:flex;justify-content:space-between;padding:3px 6px;border-radius:6px}
+.grp>.gh:hover,.sub div:hover{background:var(--chip)}
+.grp>.gh.on,.sub div.on{background:var(--acc2);color:var(--acc);font-weight:600}
+.sub{margin-left:12px;display:none}
+.grp.open .sub{display:block}
+.sub div{cursor:pointer;display:flex;justify-content:space-between;padding:2px 6px;border-radius:6px;font-size:14px}
+.n{color:var(--mut);font-size:12px}
+select,input[type=number]{font-size:14px;padding:5px;border:1px solid var(--line);border-radius:6px;width:100%}
+.row2{display:flex;gap:6px}
+#chips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 0}
+.chip{background:var(--acc2);color:var(--acc);border-radius:14px;padding:3px 10px;font-size:13px;cursor:pointer}
+.chip:after{content:" ×"}
+#grid{flex:1;padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;align-content:start}
+.card{background:var(--card);border-radius:10px;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:transform .1s}
+.card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.card img{width:100%;height:165px;object-fit:cover;display:block;background:#e8e6e0}
+.card .t{padding:8px 10px}
+.card b{display:block;font-size:14px;line-height:1.25}
+.card small{color:var(--mut);font-size:12.5px}
+.tag{display:inline-block;font-size:11.5px;background:var(--chip);border-radius:10px;padding:1px 7px;margin:4px 3px 0 0}
+#more{grid-column:1/-1;text-align:center;padding:14px}
+#more button,.btn{font-size:14px;padding:7px 16px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
+/* detail */
+#det{position:fixed;inset:0;background:rgba(20,20,20,.55);z-index:20;display:none;overflow:auto}
+#det .box{background:#fff;max-width:1180px;margin:30px auto;border-radius:12px;padding:20px 24px;position:relative}
+#det h2{margin:0 0 4px;font-size:24px}
+.x{position:absolute;right:16px;top:12px;font-size:26px;cursor:pointer;color:var(--mut);background:none;border:0}
+.meta{color:var(--mut);margin-bottom:10px}
+.meta a,.lnk{color:var(--acc);cursor:pointer;text-decoration:underline dotted}
+.ktabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 8px}
+.ktabs button{font-size:13px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:3px 11px;cursor:pointer}
+.ktabs button.on{background:var(--ink);color:#fff}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.gal img{width:100%;height:130px;object-fit:cover;border-radius:6px;cursor:zoom-in;background:#eee}
+.rel{display:flex;gap:10px;overflow:auto;padding-bottom:6px}
+.rel .card{flex:0 0 190px}
+.rel .card img{height:120px}
+.note{background:#fff7e6;border:1px solid #f3d9a4;border-radius:8px;padding:6px 10px;font-size:13px;margin-top:8px}
+/* lightbox */
+#lb{position:fixed;inset:0;background:#111;z-index:30;display:none;align-items:center;justify-content:center}
+#lb img{max-width:96vw;max-height:88vh}
+#lb .cap{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#ddd;font-size:14px}
+#lb .nav{position:absolute;top:50%;font-size:44px;color:#fff;cursor:pointer;padding:20px;user-select:none}
+#lb .x{color:#fff}
+/* osa */
+#osa{display:none;flex:1;padding:12px 16px;overflow:auto}
+#osaSel{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+#osaSel label{background:#fff;border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:13px;cursor:pointer}
+#osaSel label.on{background:var(--acc2);border-color:var(--acc);color:var(--acc)}
+#svgwrap{background:#fff;border-radius:10px;padding:10px;overflow-x:auto}
+svg text{font-family:"Segoe UI",Arial,sans-serif}
+.dot{cursor:pointer}
+.dot:hover{stroke:#000;stroke-width:2}
+#tip{position:fixed;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;box-shadow:0 4px 14px rgba(0,0,0,.15);display:none;z-index:40;font-size:13px;max-width:240px}
+#tip img{width:220px;height:140px;object-fit:cover;display:block;margin-bottom:4px;border-radius:4px}
+#fbtn,#mset,.mob{display:none}
+#login{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:20px}
+#login h1{font-size:34px;margin:0}#login .btn{font-size:17px;padding:12px 24px}
+#load{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:6px 14px;border-radius:16px;font-size:13px;z-index:45;display:none}
+@media (max-width:820px){
+ body{font-size:16px}
+ header{flex-wrap:wrap;gap:8px;padding:8px 10px}
+ header h1{font-size:17px}
+ #q{order:5;flex:1 1 100%;max-width:none;font-size:16px}
+ #info{display:none}
+ .tabs button{padding:6px 10px;font-size:14px}
+ .mob{display:block;width:100%;margin-bottom:6px;background:var(--ink)!important;color:#fff}
+ #fbtn,#mset{display:inline-block;font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+ main{display:block}
+ aside{position:fixed;left:0;top:0;bottom:0;width:86vw;max-width:340px;height:100vh;z-index:25;transform:translateX(-100%);transition:transform .2s;box-shadow:4px 0 20px rgba(0,0,0,.2);padding-top:18px}
+ aside.open{transform:none}
+ #grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:10px}
+ .card img{height:120px}
+ .card b{font-size:13.5px}
+ #det .box{margin:0;border-radius:0;min-height:100vh;padding:14px 14px 40px}
+ #det h2{font-size:20px;padding-right:30px}
+ .gal{grid-template-columns:repeat(3,1fr);gap:4px}
+ .gal img{height:100px}
+ .rel .card{flex:0 0 150px}
+ #lb .nav{display:none}
+ #osa{padding:8px}
+}
+</style>
+</head>
+<body>
+<header>
+  <button id="fbtn">Filtry</button><h1>ARCH<span>IB</span></h1>
+  <input id="q" placeholder="Hledat: název, město, autor, konstrukce… (např. skořepina kostel)">
+  <div class="tabs"><button id="tPrehled" class="on">Přehled</button> <button id="tOsa">Časová osa</button></div>
+  <div id="info"></div><button id="mset" title="Nastavení">⚙</button>
+</header>
+<main>
+  <aside id="side"></aside>
+  <section style="flex:1;display:flex;flex-direction:column">
+    <div id="chips"></div>
+    <div id="grid"></div>
+  </section>
+  <section id="osa">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <b>Porovnat autory (2–5):</b>
+      <span class="n">klikněte na jména · body = stavby (najetí ukáže fotku, klik otevře detail)</span>
+      <span style="margin-left:auto">Barva bodů: <select id="osaBarva" style="width:auto"><option value="u1">účel</option><option value="k1">konstrukce</option></select></span>
+    </div>
+    <div id="osaSel"></div>
+    <div id="svgwrap"></div>
+  </section>
+</main>
+<div id="det"><div class="box" id="detBox"></div></div>
+<div id="lb"><button class="x" onclick="lbClose()">×</button><span class="nav" style="left:10px" onclick="lbGo(-1)">‹</span><img id="lbImg" alt=""><span class="nav" style="right:10px" onclick="lbGo(1)">›</span><div class="cap" id="lbCap"></div></div>
+<div id="tip"></div>
+<div id="login"><h1>ARCH<span style="color:var(--acc)">IB</span></h1><p>Data a fotky jsou ve vašem OneDrive.<br>Přihlaste se účtem Microsoft.</p><button class="btn" id="loginBtn">Přihlásit se</button><p class="n" id="loginMsg"></p></div>
+<div id="load">Načítám…</div>
+<script src="config.js"></script>
+<script>
+const LOCAL = location.protocol === 'file:';
+let D, S, AUT;
+const CFG = window.ARCHIB_CFG || {};
+let BASE = CFG.base || 'Claude/Zrcadlo/Fakulta/_Nastroje/ARCHIB_Databaze_architektu';
+try { BASE = localStorage.getItem('archib_base') || BASE; } catch (e) {}
+// ---------- OneDrive (Microsoft Graph) ----------
+let msal = null, account = null;
+const SCOPES = ['Files.Read'];
+const GP = p => p.split('/').map(encodeURIComponent).join('/');
+async function token() {
+  try { return (await msal.acquireTokenSilent({scopes: SCOPES, account})).accessToken; }
+  catch (e) { await msal.acquireTokenRedirect({scopes: SCOPES, account}); }
+}
+async function graph(url, opt = {}) {
+  const t = await token();
+  const r = await fetch('https://graph.microsoft.com/v1.0' + url, {...opt, headers: {...(opt.headers || {}), Authorization: 'Bearer ' + t}});
+  if (!r.ok) throw new Error('Graph ' + r.status + ' ' + url);
+  return r.json();
+}
+const FOLD = {};   // cesta složky -> Promise({jméno: url})
+function listUrl(path, big) {
+  return `/me/drive/root:/${GP(path)}:/children?$top=999&` + (big ? '$select=name&$expand=thumbnails' : '$select=name,@microsoft.graph.downloadUrl');
+}
+function parseList(j, big) {
+  const m = {}; (j.value || []).forEach(it => { m[it.name] = big ? (it.thumbnails && it.thumbnails[0] && (it.thumbnails[0].large || it.thumbnails[0].medium || {}).url) : it['@microsoft.graph.downloadUrl']; });
+  return m;
+}
+function folder(path, big) {
+  const k = (big ? 'B|' : 'N|') + path, c = FOLD[k];
+  if (c && Date.now() - c.t < 45 * 60e3) return c.p;
+  const p = graph(listUrl(path, big)).then(j => parseList(j, big)).catch(() => ({}));
+  FOLD[k] = {p, t: Date.now()}; return p;
+}
+async function prefetch(paths) { // dávkově po 20 (Graph $batch)
+  const need = [...new Set(paths)].filter(p => !FOLD['N|' + p] || Date.now() - FOLD['N|' + p].t > 45 * 60e3);
+  for (let i = 0; i < need.length; i += 20) {
+    const part = need.slice(i, i + 20), res = {};
+    const pr = graph('/$batch', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({requests: part.map((p, j) => ({id: String(j), method: 'GET', url: listUrl(p, false)}))})})
+      .then(j => { (j.responses || []).forEach(r => res[part[+r.id]] = r.status === 200 ? parseList(r.body, false) : {}); }).catch(() => {});
+    part.forEach(p => FOLD['N|' + p] = {p: pr.then(() => res[p] || {}), t: Date.now()});
+  }
+}
+async function hydrate(root) {
+  if (LOCAL) return;
+  const imgs = [...(root || document).querySelectorAll('img[data-p]')];
+  await prefetch(imgs.map(i => i.dataset.p));
+  imgs.forEach(async im => { const m = await folder(im.dataset.p, false); const u = m[im.dataset.f]; if (u) im.src = u; im.removeAttribute('data-p'); });
+}
+const showLoad = on => document.getElementById('load').style.display = on ? 'block' : 'none';
+async function start() {
+  if (LOCAL) { await new Promise((ok, err) => { const sc = document.createElement('script'); sc.src = 'data.js'; sc.onload = ok; sc.onerror = err; document.head.appendChild(sc); }); }
+  else {
+    if (!CFG.clientId) { document.getElementById('login').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; document.getElementById('loginMsg').textContent = 'Chybí Client ID v config.js – registrace aplikace ještě není hotová.'; return; }
+    await new Promise((ok, err) => { const sc = document.createElement('script'); sc.src = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js'; sc.onload = ok; sc.onerror = err; document.head.appendChild(sc); });
+    msal = new msalBrowser.PublicClientApplication({auth: {clientId: CFG.clientId, authority: 'https://login.microsoftonline.com/consumers', redirectUri: location.origin + location.pathname}, cache: {cacheLocation: 'localStorage'}});
+    const rr = await msal.handleRedirectPromise().catch(e => { document.getElementById('loginMsg').textContent = e.message; });
+    account = (rr && rr.account) || msal.getAllAccounts()[0];
+    if (!account) { const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').onclick = () => msal.loginRedirect({scopes: SCOPES}); return; }
+    showLoad(true);
+    try {
+      const it = await graph(`/me/drive/root:/${GP(BASE + '/Aplikace/data.js')}?$select=name,@microsoft.graph.downloadUrl`);
+      const txt = await (await fetch(it['@microsoft.graph.downloadUrl'])).text();
+      window.ARCHIB = JSON.parse(txt.slice(txt.indexOf('=') + 1).replace(/;\s*$/, ''));
+    } catch (e) { showLoad(false); const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; document.getElementById('loginMsg').innerHTML = 'Data se nepodařilo načíst z OneDrive:<br>' + BASE + '/Aplikace/data.js<br>Spusťte na PC SYNC_Claude.bat nebo upravte cestu (⚙).<br><small>' + e.message + '</small>'; return; }
+    showLoad(false);
+  }
+  init();
+}
+function init() {
+D = window.ARCHIB; S = D.stavby;
+AUT = Object.fromEntries(D.autori.map(a => [a.n, a]));
+S.forEach(s => { s.txt = norm([s.n, s.m, s.z, s.a, s.u1, s.u2, s.k1, s.k2, s.mat, s.p, s.r].join(' ')); });
+SLOHY = merged('Slohy'); UDAL = merged('Události'); TECH = D.udalosti.filter(u => u.k === 'Technologie'); MIL = D.udalosti.filter(u => u.k === 'Milníky');
+['Nervi Luigi', 'Candela Felix'].forEach(a => AUT[a] && osaVyb.add(a));
+render();
+}
+const enc = p => p.split('/').map(encodeURIComponent).join('/');
+
+
+const thumbName = f => f.replace(/\.[^.]+$/, '') + '.jpg';
+const thumb = (s, f) => enc(`../Fotky_web/nahled/${s.d}/${s.id}/${thumbName(f)}`);
+const orig = (s, f) => enc(`../Zdroj/Architekti/${s.d}/${s.id}/${f}`);
+const PIX = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+const IMG = (s, f, extra = '') => LOCAL ? `<img loading="lazy" src="${thumb(s, f)}" ${extra}>` : `<img src="${PIX}" data-p="${BASE}/Fotky_web/nahled/${s.d}/${s.id}" data-f="${thumbName(f)}" ${extra}>`;
+const ikona = s => (s.f.find(x => x[1] === 'Ikona') || s.f.find(x => x[1] === 'Exteriér') || s.f[0])[0];
+const norm = t => (t || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const zivot = a => a ? (a.nar && a.nar > -9000 && a.nar < 9000 ? (a.umr && a.umr !== '-' && a.umr < 2100 ? ` (${a.nar}–${a.umr})` : ` (* ${a.nar})`) : '') : '';
+// synonyma pro hledání popisem
+const SYN = {skorepina: 'skořepiny', skorepiny: 'skořepiny', kostel: 'sakrální', kostely: 'sakrální', chram: 'sakrální', katedrala: 'sakrální', most: 'mosty', mosty: 'mosty', stadion: 'sport', hala: 'haly', kopule: 'kopule', hypar: 'hyparové', lano: 'lanové', lanove: 'lanové', membrana: 'membrány', letiste: 'letiště', nadrazi: 'nádraží', muzeum: 'muzea', divadlo: 'divadla', mrakodrap: 'výšk', vyskova: 'výšk', drevo: 'dřevo', ocel: 'ocel', beton: 'beton'};
+
+const F = {a: null, u1: null, u2: null, k1: null, k2: null, z: null, od: null, do: null, jenKl: false};
+let shown = 60, cur = [];
+function match(s, q) {
+  if (F.a && s.a !== F.a) return false;
+  if (F.u1 && s.u1 !== F.u1) return false; if (F.u2 && s.u2 !== F.u2) return false;
+  if (F.k1 && s.k1 !== F.k1) return false; if (F.k2 && s.k2 !== F.k2) return false;
+  if (F.z && s.z !== F.z) return false;
+  if (F.od && (!s.r || s.r < F.od)) return false; if (F.do && (!s.r || s.r > F.do)) return false;
+  if (F.jenKl && !s.u1) return false;
+  for (const w of q) { const alt = SYN[w] ? norm(SYN[w]) : null; if (!s.txt.includes(w) && !(alt && s.txt.includes(alt))) return false; }
+  return true;
+}
+function counts(key, base) { const c = {}; base.forEach(s => { const v = s[key]; if (v) c[v] = (c[v] || 0) + 1; }); return c; }
+function tree(title, k1, k2, base) {
+  const c1 = counts(k1, base); let h = `<h3>${title}</h3>`;
+  const keys = Object.keys(c1).sort((a, b) => c1[b] - c1[a]);
+  if (!keys.length) h += '<div class="n">zatím jen u klasifikovaných staveb</div>';
+  keys.forEach(g => {
+    const sub = counts(k2, base.filter(s => s[k1] === g)); const open = F[k1] === g;
+    h += `<div class="grp${open ? ' open' : ''}"><div class="gh${open ? ' on' : ''}" data-k="${k1}" data-v="${g}"><span>${g}</span><span class="n">${c1[g]}</span></div><div class="sub">` +
+      Object.keys(sub).sort((a, b) => sub[b] - sub[a]).map(p => `<div class="${F[k2] === p ? 'on' : ''}" data-k="${k2}" data-v="${p}"><span>${p}</span><span class="n">${sub[p]}</span></div>`).join('') + '</div></div>';
+  });
+  return h;
+}
+function render() {
+  const q = norm(document.getElementById('q').value).split(/\s+/).filter(Boolean);
+  cur = S.filter(s => match(s, q)).sort((a, b) => (a.r || 9999) - (b.r || 9999));
+  const ca = counts('a', cur), cz = counts('z', cur);
+  let h = `<button class="btn mob" onclick="document.getElementById('side').classList.remove('open')">Zobrazit ${cur.length} staveb</button><h3>Autor</h3><select id="fa"><option value="">— všichni (${Object.keys(ca).length}) —</option>` +
+    D.autori.map(a => a.n).sort().filter(a => ca[a] || F.a === a).map(a => `<option ${F.a === a ? 'selected' : ''}>${a}</option>`).join('') + '</select>';
+  h += tree('Účel', 'u1', 'u2', cur) + tree('Konstrukce', 'k1', 'k2', cur);
+  h += `<h3>Období</h3><div class="row2"><input type="number" id="fod" placeholder="od" value="${F.od || ''}"><input type="number" id="fdo" placeholder="do" value="${F.do || ''}"></div>`;
+  h += `<h3>Země</h3><select id="fz"><option value="">— všechny —</option>` + Object.keys(cz).sort().map(z => `<option ${F.z === z ? 'selected' : ''}>${z}</option>`).join('') + '</select>';
+  h += `<h3>Ostatní</h3><label><input type="checkbox" id="fkl" ${F.jenKl ? 'checked' : ''}> jen klasifikované stavby</label>`;
+  h += `<p><button class="btn" onclick="reset()">Zrušit filtry</button></p><p class="n">Data: ${D.db}<br>export ${D.vytvoreno}</p>`;
+  document.getElementById('side').innerHTML = h;
+  document.getElementById('fa').onchange = e => { F.a = e.target.value || null; shown = 60; render(); };
+  document.getElementById('fz').onchange = e => { F.z = e.target.value || null; shown = 60; render(); };
+  document.getElementById('fod').onchange = e => { F.od = +e.target.value || null; render(); };
+  document.getElementById('fdo').onchange = e => { F.do = +e.target.value || null; render(); };
+  document.getElementById('fkl').onchange = e => { F.jenKl = e.target.checked; render(); };
+  document.querySelectorAll('aside [data-k]').forEach(el => el.onclick = () => {
+    const k = el.dataset.k, v = el.dataset.v; F[k] = F[k] === v ? null : v;
+    if (k === 'u1' && !F.u1) F.u2 = null; if (k === 'k1' && !F.k1) F.k2 = null; shown = 60; render();
+  });
+  const names = {a: 'autor', u1: 'účel', u2: 'účel', k1: 'konstrukce', k2: 'konstrukce', z: 'země', od: 'od', do: 'do', jenKl: 'jen klasifikované'};
+  document.getElementById('chips').innerHTML = Object.entries(F).filter(([k, v]) => v).map(([k, v]) => `<span class="chip" data-k="${k}">${names[k]}: ${v === true ? 'ano' : v}</span>`).join('');
+  document.querySelectorAll('.chip').forEach(c => c.onclick = () => { F[c.dataset.k] = c.dataset.k === 'jenKl' ? false : null; render(); });
+  document.getElementById('info').textContent = `${cur.length} staveb · ${cur.reduce((n, s) => n + s.f.length, 0)} fotek`;
+  document.getElementById('grid').innerHTML = cur.slice(0, shown).map(card).join('') +
+    (cur.length > shown ? `<div id="more"><button onclick="shown+=120;render()">Další (${cur.length - shown})</button></div>` : '') +
+    (cur.length ? '' : '<p>Nic nenalezeno. Zkuste méně slov nebo zrušit filtry.</p>');
+  hydrate(document.getElementById('grid'));
+}
+function card(s) {
+  return `<div class="card" onclick="openDet('${s.id.replace(/'/g, "\\'")}')">${IMG(s, ikona(s), 'alt=""')}<div class="t"><b>${s.n}</b><small>${s.r || ''} · ${s.a} · ${s.m || ''}</small><br>` +
+    (s.k2 ? `<span class="tag">${s.k2}</span>` : '') + (s.u2 ? `<span class="tag">${s.u2}</span>` : '') + `</div></div>`;
+}
+function reset() { Object.keys(F).forEach(k => F[k] = k === 'jenKl' ? false : null); document.getElementById('q').value = ''; shown = 60; render(); }
+function setF(k, v) { closeDet(); F[k] = v; if (k === 'u2') F.u1 = S.find(s => s.u2 === v).u1; if (k === 'k2') F.k1 = S.find(s => s.k2 === v).k1; shown = 60; showTab('p'); render(); }
+// detail
+let detS = null, detKat = 'vše', lbList = [], lbI = 0;
+const KORDER = ['Ikona', 'Exteriér', 'Interiér', 'Detaily', 'Stavba', 'Výkresy', 'Historie', 'Mapa', 'Text', 'Černobílé', 'Nezařazeno'];
+function openDet(id) { detS = S.find(s => s.id === id); detKat = 'vše'; drawDet(); document.getElementById('det').style.display = 'block'; document.getElementById('det').scrollTop = 0; }
+function closeDet() { document.getElementById('det').style.display = 'none'; }
+function drawDet() {
+  const s = detS, a = AUT[s.a]; const kc = {}; s.f.forEach(f => kc[f[1]] = (kc[f[1]] || 0) + 1);
+  const fl = s.f.filter(f => detKat === 'vše' || f[1] === detKat); lbList = fl.map(f => [f[0], f[1]]);
+  const tg = (k, v) => v ? `<a onclick="setF('${k}','${v.replace(/'/g, "\\'")}')">${v}</a>` : '<span class="n">neurčeno</span>';
+  const podob = S.filter(x => x !== s && ((s.k2 && x.k2 === s.k2) || (!s.k2 && s.u2 && x.u2 === s.u2))).slice(0, 12);
+  const autor = S.filter(x => x !== s && x.a === s.a).sort((x, y) => Math.abs((x.r || 0) - (s.r || 0)) - Math.abs((y.r || 0) - (s.r || 0))).slice(0, 12);
+  document.getElementById('detBox').innerHTML = `<button class="x" onclick="closeDet()">×</button>
+   <h2>${s.n}${s.r ? ` <span class="n" style="font-size:20px">(${s.r})</span>` : ''}</h2>
+   <div class="meta"><a onclick="setF('a','${s.a.replace(/'/g, "\\'")}')">${s.a}</a>${zivot(a)} · ${s.m || ''}${s.z ? ', ' + s.z : ''}</div>
+   <div><b>Účel:</b> ${tg('u1', s.u1)}${s.u2 ? ' – ' + tg('u2', s.u2) : ''} &nbsp; <b>Konstrukce:</b> ${tg('k1', s.k1)}${s.k2 ? ' – ' + tg('k2', s.k2) : ''} &nbsp; <b>Materiál:</b> ${s.mat || '<span class="n">neurčeno</span>'}</div>
+   ${s.st ? `<div class="note">${s.st}${s.j ? ', jistota ' + s.j : ''}${s.p ? ' – ' + s.p : ''}</div>` : (s.p ? `<div class="note">${s.p}</div>` : '')}
+   <div class="ktabs"><button class="${detKat === 'vše' ? 'on' : ''}" onclick="detKat='vše';drawDet()">vše (${s.f.length})</button>` +
+    KORDER.filter(k => kc[k]).map(k => `<button class="${detKat === k ? 'on' : ''}" onclick="detKat='${k}';drawDet()">${k} (${kc[k]})</button>`).join('') + `</div>
+   <div class="gal">${fl.map((f, i) => `${IMG(s, f[0], `title="${f[0]}" onclick="lbOpen(${i})"`)}`).join('')}</div>
+   ${podob.length ? `<h3>Podobné stavby (${s.k2 || s.u2})</h3><div class="rel">${podob.map(card).join('')}</div>` : ''}
+   ${autor.length ? `<h3>Další od autora</h3><div class="rel">${autor.map(card).join('')}</div>` : ''}`;
+  hydrate(document.getElementById('detBox'));
+}
+function lbOpen(i) { lbI = i; lbShow(); document.getElementById('lb').style.display = 'flex'; }
+function lbShow() { const [f, k] = lbList[lbI], im = document.getElementById('lbImg'), s = detS;
+  if (LOCAL) im.src = orig(s, f);
+  else { im.src = PIX; const i0 = lbI; folder(`${BASE}/Fotky_web/nahled/${s.d}/${s.id}`, false).then(m => { if (i0 === lbI && im.src === PIX && m[thumbName(f)]) im.src = m[thumbName(f)]; });
+    folder(`${BASE}/Zdroj/Architekti/${s.d}/${s.id}`, true).then(m => { if (i0 === lbI && m[f]) im.src = m[f]; }); } document.getElementById('lbCap').textContent = `${detS.n} · ${k} · ${lbI + 1}/${lbList.length}`; }
+function lbGo(d) { lbI = (lbI + d + lbList.length) % lbList.length; lbShow(); }
+function lbClose() { document.getElementById('lb').style.display = 'none'; }
+document.addEventListener('keydown', e => {
+  if (document.getElementById('lb').style.display === 'flex') { if (e.key === 'ArrowRight') lbGo(1); if (e.key === 'ArrowLeft') lbGo(-1); if (e.key === 'Escape') lbClose(); }
+  else if (e.key === 'Escape') closeDet();
+});
+document.getElementById('det').onclick = e => { if (e.target.id === 'det') closeDet(); };
+// časová osa
+const osaVyb = new Set();
+const PAL = ['#9a3412', '#1d4ed8', '#047857', '#7c3aed', '#b45309', '#be185d', '#0e7490', '#4d7c0f', '#6b7280', '#c2410c', '#1e40af', '#15803d', '#a21caf', '#854d0e', '#0369a1'];
+function merged(kind) { // sloučit úseky se stejným názvem (mezera ≤ 25 let)
+  const out = []; D.udalosti.filter(u => u.k === kind).sort((a, b) => a.od - b.od).forEach(u => {
+    const p = out.find(o => o.t === u.t && u.od - o.do <= 25); if (p) p.do = Math.max(p.do, u.do); else out.push({...u});
+  }); return out;
+}
+let SLOHY = [], UDAL = [], TECH = [], MIL = [];
+function drawOsaSel() {
+  const cnt = counts('a', S);
+  document.getElementById('osaSel').innerHTML = D.autori.slice().sort((a, b) => (a.nar || 0) - (b.nar || 0)).filter(a => a.nar > -9000 && a.nar < 9000)
+    .map(a => `<label class="${osaVyb.has(a.n) ? 'on' : ''}" data-a="${a.n}">${a.n} <span class="n">${a.nar}, ${cnt[a.n] || 0}</span></label>`).join('');
+  document.querySelectorAll('#osaSel label').forEach(l => l.onclick = () => {
+    const a = l.dataset.a; if (osaVyb.has(a)) osaVyb.delete(a); else if (osaVyb.size < 5) osaVyb.add(a); drawOsaSel(); drawOsa();
+  });
+}
+function drawOsa() {
+  const A = [...osaVyb].map(n => AUT[n]); const wrap = document.getElementById('svgwrap');
+  if (!A.length) { wrap.innerHTML = '<p>Vyberte nahoře 2–5 autorů.</p>'; return; }
+  const key = document.getElementById('osaBarva').value;
+  const st = A.map(a => S.filter(s => s.a === a.n && s.r));
+  const yrs = A.flatMap(a => [a.nar, (a.umr && a.umr !== '-' && a.umr < 2100) ? a.umr : 2026]).concat(st.flat().map(s => s.r));
+  const y0 = Math.floor(Math.min(...yrs) / 10) * 10 - 10, y1 = Math.ceil(Math.max(...yrs) / 10) * 10 + 10;
+  const W = Math.max(1100, wrap.clientWidth - 20), L = 210, R = 20, px = y => L + (y - y0) / (y1 - y0) * (W - L - R);
+  const rowH = 64, top = 30; let y = top, g = '';
+  const cats = [...new Set(st.flat().map(s => s[key] || 'neurčeno'))]; const col = c => c === 'neurčeno' ? '#9ca3af' : PAL[cats.indexOf(c) % PAL.length];
+  for (let t = y0; t <= y1; t += 10) g += `<line x1="${px(t)}" x2="${px(t)}" y1="${top - 8}" y2="2000" stroke="${t % 50 ? '#f0efeb' : '#dedcd6'}"/>` + (t % 50 === 0 || (y1 - y0) < 160 ? `<text x="${px(t)}" y="${top - 12}" font-size="12" text-anchor="middle" fill="#6b6b70">${t}</text>` : '');
+  A.forEach((a, i) => {
+    const umr = (a.umr && a.umr !== '-' && a.umr < 2100) ? a.umr : 2026;
+    g += `<text x="8" y="${y + 26}" font-size="14" font-weight="600">${a.n}</text><text x="8" y="${y + 44}" font-size="12" fill="#6b6b70">${zivot(a)} · ${st[i].length} staveb</text>`;
+    g += `<rect x="${px(a.nar)}" y="${y + 28}" width="${px(umr) - px(a.nar)}" height="8" rx="4" fill="#e7e5df"/>`;
+    const lane = {}; st[i].sort((p, q) => p.r - q.r).forEach(s => { const k = s.r; lane[k] = (lane[k] || 0) + 1; const dy = ((lane[k] - 1) % 4) * 9;
+      g += `<circle class="dot" data-id="${s.id}" cx="${px(s.r)}" cy="${y + 18 + dy}" r="6" fill="${col(s[key] || 'neurčeno')}" fill-opacity=".85"/>`; });
+    y += rowH; g += `<line x1="0" x2="${W}" y1="${y - 4}" y2="${y - 4}" stroke="#eee"/>`;
+  });
+  const band = (title, items, color, pts) => {
+    g += `<text x="8" y="${y + 18}" font-size="13" font-weight="600" fill="#6b6b70">${title}</text>`;
+    const vis = items.filter(u => u.do >= y0 && u.od <= y1); let lanes = [];
+    vis.forEach(u => { const x0 = px(Math.max(u.od, y0)), x1 = pts ? x0 : px(Math.min(u.do, y1)); const tw = (u.t.length + (pts ? 7 : 0)) * 7 + 14;
+      let l = lanes.findIndex(e => e < x0 - 4); if (l < 0) { l = lanes.length; lanes.push(0); } lanes[l] = Math.max(x1, x0 + tw);
+      const yy = y + 6 + l * 18;
+      g += pts ? `<circle cx="${x0}" cy="${yy + 7}" r="4" fill="${color}"/><text x="${x0 + 7}" y="${yy + 11}" font-size="12">${u.t} (${u.od})</text>`
+        : `<rect x="${x0}" y="${yy}" width="${Math.max(3, x1 - x0)}" height="14" rx="3" fill="${color}" fill-opacity=".25"/><text x="${x0 + 3}" y="${yy + 11}" font-size="12">${u.t}</text>`; });
+    y += Math.max(1, lanes.length) * 18 + 16; g += `<line x1="0" x2="${W}" y1="${y - 6}" y2="${y - 6}" stroke="#eee"/>`;
+  };
+  band('Slohy', SLOHY, '#7c3aed'); band('Technologie', TECH, '#047857', true); band('Události', UDAL, '#b91c1c'); band('Milníky', MIL, '#1d4ed8', true);
+  let leg = `<text x="8" y="${y + 16}" font-size="12" fill="#6b6b70">Barva: ${key === 'u1' ? 'účel' : 'konstrukce'}</text>`; let lx = 140;
+  cats.forEach(c => { leg += `<circle cx="${lx}" cy="${y + 12}" r="6" fill="${col(c)}"/><text x="${lx + 10}" y="${y + 16}" font-size="12">${c}</text>`; lx += c.length * 7 + 34; });
+  wrap.innerHTML = `<svg width="${W}" height="${y + 30}" viewBox="0 0 ${W} ${y + 30}">${g}${leg}</svg>`;
+  const tip = document.getElementById('tip');
+  wrap.querySelectorAll('.dot').forEach(d => {
+    const s = S.find(x => x.id === d.dataset.id);
+    d.onmouseenter = e => { tip.innerHTML = `${IMG(s, ikona(s))}<b>${s.n}</b><br>${s.r} · ${s.m || ''}<br><span class="n">${s.k2 || s.k1 || ''} ${s.u2 ? '· ' + s.u2 : ''}</span>`; tip.style.display = 'block'; hydrate(tip); };
+    d.onmousemove = e => { tip.style.left = Math.min(e.clientX + 14, innerWidth - 260) + 'px'; tip.style.top = (e.clientY + 14) + 'px'; };
+    d.onmouseleave = () => tip.style.display = 'none';
+    d.onclick = () => { tip.style.display = 'none'; openDet(s.id); };
+  });
+}
+document.getElementById('osaBarva').onchange = drawOsa;
+function showTab(t) {
+  const osa = t === 'o';
+  document.getElementById('tPrehled').classList.toggle('on', !osa); document.getElementById('tOsa').classList.toggle('on', osa);
+  document.getElementById('osa').style.display = osa ? 'block' : 'none';
+  document.getElementById('side').style.display = osa ? 'none' : 'block';
+  document.querySelector('main>section').style.display = osa ? 'none' : 'flex';
+  if (osa) { drawOsaSel(); drawOsa(); }
+}
+document.getElementById('tPrehled').onclick = () => showTab('p');
+document.getElementById('tOsa').onclick = () => showTab('o');
+let tm; document.getElementById('q').oninput = () => { clearTimeout(tm); tm = setTimeout(() => { shown = 60; render(); }, 200); };
+
+document.getElementById('fbtn').onclick = e => { e.stopPropagation(); document.getElementById('side').classList.toggle('open'); };
+document.querySelector('main').addEventListener('click', e => { if (!e.target.closest('aside')) document.getElementById('side').classList.remove('open'); });
+document.getElementById('mset').onclick = () => {
+  const v = prompt('Cesta k projektu ARCHIB v OneDrive (od kořene):', BASE);
+  if (v) { try { localStorage.setItem('archib_base', v.replace(/^\/+|\/+$/g, '')); } catch (e) {} location.reload(); }
+};
+let tx = null; const lbEl = document.getElementById('lb');
+lbEl.addEventListener('touchstart', e => tx = e.touches[0].clientX, {passive: true});
+lbEl.addEventListener('touchend', e => { if (tx === null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 50) lbGo(dx < 0 ? 1 : -1); else if (e.target.tagName !== 'BUTTON') lbClose(); tx = null; });
+start();
+</script>
+</body>
+</html>
