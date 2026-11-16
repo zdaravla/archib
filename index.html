@@ -88,7 +88,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
  header{flex-wrap:wrap;gap:8px;padding:8px 10px}
  header h1{font-size:17px}
  #q{order:5;flex:1 1 100%;max-width:none;font-size:16px}
- #info{display:none}
+ #info{order:6;flex:1 1 100%;font-size:12px;margin:0}
  .tabs button{padding:6px 10px;font-size:14px}
  .mob{display:block;width:100%;margin-bottom:6px;background:var(--ink)!important;color:#fff}
  #fbtn,#mset{display:inline-block;font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
@@ -159,16 +159,16 @@ async function graph(url, opt = {}) {
 }
 const FOLD = {};   // cesta složky -> Promise({jméno: url})
 function listUrl(path, big) {
-  return `/me/drive/root:/${GP(path)}:/children?$top=999&` + (big ? '$expand=thumbnails' : '$select=id,name');
+  return `/me/drive/root:/${GP(path)}:/children?$top=999&` + '$expand=thumbnails';
 }
 function parseList(j, big) {
-  const m = {}; (j.value || []).forEach(it => { m[it.name] = big ? (it.thumbnails && it.thumbnails[0] && (it.thumbnails[0].large || it.thumbnails[0].medium || {}).url) : it['@microsoft.graph.downloadUrl']; });
+  const m = {}; (j.value || []).forEach(it => { const th = it.thumbnails && it.thumbnails[0] || {}; m[it.name] = {u: big ? (th.large || th.medium || {}).url : (it['@microsoft.graph.downloadUrl'] || (th.large || th.medium || {}).url), id: it.id}; });
   return m;
 }
 function folder(path, big) {
   const k = (big ? 'B|' : 'N|') + path, c = FOLD[k];
   if (c && Date.now() - c.t < 45 * 60e3) return c.p;
-  const p = graph(listUrl(path, big)).then(j => parseList(j, big)).catch(() => ({}));
+  const p = graph(listUrl(path, big)).then(j => parseList(j, big)).catch(e => { DIAG.err = e.message; return {}; });
   FOLD[k] = {p, t: Date.now()}; return p;
 }
 async function prefetch(paths) { // dávkově po 20 (Graph $batch)
@@ -177,15 +177,25 @@ async function prefetch(paths) { // dávkově po 20 (Graph $batch)
     const part = need.slice(i, i + 20), res = {};
     const pr = graph('/$batch', {method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({requests: part.map((p, j) => ({id: String(j), method: 'GET', url: listUrl(p, false)}))})})
-      .then(j => { (j.responses || []).forEach(r => res[part[+r.id]] = r.status === 200 ? parseList(r.body, false) : {}); }).catch(() => {});
+      .then(j => { (j.responses || []).forEach(r => { if (r.status !== 200) DIAG.err = 'batch ' + r.status + ' ' + ((r.body && r.body.error && r.body.error.message) || ''); res[part[+r.id]] = r.status === 200 ? parseList(r.body, false) : {}; }); }).catch(e => { DIAG.err = e.message; });
     part.forEach(p => FOLD['N|' + p] = {p: pr.then(() => res[p] || {}), t: Date.now()});
   }
 }
+const DIAG = {ok: 0, blob: 0, chybi: 0, slozka: 0, err: ''};
+async function srcOf(e) {
+  if (!e) return null;
+  if (e.u) return e.u;
+  if (!e.id) return null;
+  try { const r = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${e.id}/content`, {headers: {Authorization: 'Bearer ' + await token()}});
+    if (!r.ok) throw new Error('content ' + r.status); DIAG.blob++; return URL.createObjectURL(await r.blob()); }
+  catch (x) { DIAG.err = x.message; return null; }
+}
+function diagShow() { if (!LOCAL) document.getElementById('info').textContent = `fotky: ${DIAG.ok} ok, ${DIAG.chybi} chybí${DIAG.slozka ? ', složky nenalezeny ' + DIAG.slozka : ''}${DIAG.err ? ' · ' + DIAG.err : ''}`; }
 async function hydrate(root) {
   if (LOCAL) return;
   const imgs = [...(root || document).querySelectorAll('img[data-p]')];
   await prefetch(imgs.map(i => i.dataset.p));
-  imgs.forEach(async im => { const m = await folder(im.dataset.p, false); const u = m[im.dataset.f]; if (u) im.src = u; im.removeAttribute('data-p'); });
+  imgs.forEach(async im => { const m = await folder(im.dataset.p, false); if (!Object.keys(m).length) DIAG.slozka++; const u = await srcOf(m[im.dataset.f]); if (u) { im.src = u; DIAG.ok++; } else DIAG.chybi++; im.removeAttribute('data-p'); diagShow(); });
 }
 const showLoad = on => document.getElementById('load').style.display = on ? 'block' : 'none';
 async function start() {
@@ -334,8 +344,8 @@ function drawDet() {
 function lbOpen(i) { lbI = i; lbShow(); document.getElementById('lb').style.display = 'flex'; }
 function lbShow() { const [f, k] = lbList[lbI], im = document.getElementById('lbImg'), s = detS;
   if (LOCAL) im.src = orig(s, f);
-  else { im.src = PIX; const i0 = lbI; folder(`${BASE}/Fotky_web/nahled/${s.d}/${s.id}`, false).then(m => { if (i0 === lbI && im.src === PIX && m[thumbName(f)]) im.src = m[thumbName(f)]; });
-    folder(`${BASE}/Zdroj/Architekti/${s.d}/${s.id}`, true).then(m => { if (i0 === lbI && m[f]) im.src = m[f]; }); } document.getElementById('lbCap').textContent = `${detS.n} · ${k} · ${lbI + 1}/${lbList.length}`; }
+  else { im.src = PIX; const i0 = lbI; folder(`${BASE}/Fotky_web/nahled/${s.d}/${s.id}`, false).then(m => { if (i0 === lbI && im.src === PIX) srcOf(m[thumbName(f)]).then(u => { if (u && i0 === lbI && im.src === PIX) im.src = u; }); });
+    folder(`${BASE}/Zdroj/Architekti/${s.d}/${s.id}`, true).then(m => { const e = m[f]; if (i0 === lbI && e && e.u) im.src = e.u; }); } document.getElementById('lbCap').textContent = `${detS.n} · ${k} · ${lbI + 1}/${lbList.length}`; }
 function lbGo(d) { lbI = (lbI + d + lbList.length) % lbList.length; lbShow(); }
 function lbClose() { document.getElementById('lb').style.display = 'none'; }
 document.addEventListener('keydown', e => {
