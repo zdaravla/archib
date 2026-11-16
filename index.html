@@ -159,7 +159,7 @@ async function graph(url, opt = {}) {
 }
 const FOLD = {};   // cesta složky -> Promise({jméno: url})
 function listUrl(path, big) {
-  return `/me/drive/root:/${GP(path)}:/children?$top=999&` + (big ? '$expand=thumbnails' : '$select=id,name,file,@microsoft.graph.downloadUrl');
+  return `/me/drive/root:/${GP(path)}:/children?$top=999&` + (big ? '$expand=thumbnails' : '$select=id,name');
 }
 function parseList(j, big) {
   const m = {}; (j.value || []).forEach(it => { m[it.name] = big ? (it.thumbnails && it.thumbnails[0] && (it.thumbnails[0].large || it.thumbnails[0].medium || {}).url) : it['@microsoft.graph.downloadUrl']; });
