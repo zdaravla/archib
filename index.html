@@ -159,7 +159,7 @@ async function graph(url, opt = {}) {
 }
 const FOLD = {};   // cesta složky -> Promise({jméno: url})
 function listUrl(path, big) {
-  return `/me/drive/root:/${GP(path)}:/children?$top=999&` + (big ? '$select=name&$expand=thumbnails' : '$select=name,@microsoft.graph.downloadUrl');
+  return `/me/drive/root:/${GP(path)}:/children?$top=999&` + (big ? '$expand=thumbnails' : '$select=id,name,file,@microsoft.graph.downloadUrl');
 }
 function parseList(j, big) {
   const m = {}; (j.value || []).forEach(it => { m[it.name] = big ? (it.thumbnails && it.thumbnails[0] && (it.thumbnails[0].large || it.thumbnails[0].medium || {}).url) : it['@microsoft.graph.downloadUrl']; });
@@ -199,8 +199,12 @@ async function start() {
     if (!account) { const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').onclick = () => msal.loginRedirect({scopes: SCOPES}); return; }
     showLoad(true);
     const loadData = async () => {
-      const it = await graph(`/me/drive/root:/${GP(BASE + '/Aplikace/data.js')}?$select=name,@microsoft.graph.downloadUrl`);
-      const txt = await (await fetch(it['@microsoft.graph.downloadUrl'])).text();
+      const it = await graph(`/me/drive/root:/${GP(BASE + '/Aplikace/data.js')}`);
+      let url = it['@microsoft.graph.downloadUrl'], resp;
+      if (url) resp = await fetch(url);
+      else resp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${it.id}/content`, {headers: {Authorization: 'Bearer ' + await token()}});
+      const txt = await resp.text();
+      if (!txt.startsWith('window.ARCHIB=')) throw new Error('data.js má neočekávaný obsah (' + txt.slice(0, 60).replace(/</g, '&lt;') + '…)');
       window.ARCHIB = JSON.parse(txt.slice(txt.indexOf('=') + 1).replace(/;\s*$/, ''));
     };
     try {
