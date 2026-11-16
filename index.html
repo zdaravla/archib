@@ -192,8 +192,8 @@ async function start() {
   if (LOCAL) { await new Promise((ok, err) => { const sc = document.createElement('script'); sc.src = 'data.js'; sc.onload = ok; sc.onerror = err; document.head.appendChild(sc); }); }
   else {
     if (!CFG.clientId) { document.getElementById('login').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; document.getElementById('loginMsg').textContent = 'Chybí Client ID v config.js – registrace aplikace ještě není hotová.'; return; }
-    await new Promise((ok, err) => { const sc = document.createElement('script'); sc.src = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js'; sc.onload = ok; sc.onerror = err; document.head.appendChild(sc); });
-    msal = new msalBrowser.PublicClientApplication({auth: {clientId: CFG.clientId, authority: 'https://login.microsoftonline.com/consumers', redirectUri: location.origin + location.pathname}, cache: {cacheLocation: 'localStorage'}});
+    await new Promise((ok, err) => { const sc = document.createElement('script'); sc.src = 'msal-browser.min.js'; sc.onload = ok; sc.onerror = err; document.head.appendChild(sc); });
+    msal = new (window.msal || window.msalBrowser).PublicClientApplication({auth: {clientId: CFG.clientId, authority: 'https://login.microsoftonline.com/consumers', redirectUri: location.origin + location.pathname}, cache: {cacheLocation: 'localStorage'}});
     const rr = await msal.handleRedirectPromise().catch(e => { document.getElementById('loginMsg').textContent = e.message; });
     account = (rr && rr.account) || msal.getAllAccounts()[0];
     if (!account) { const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').onclick = () => msal.loginRedirect({scopes: SCOPES}); return; }
@@ -405,7 +405,7 @@ document.getElementById('mset').onclick = () => {
 let tx = null; const lbEl = document.getElementById('lb');
 lbEl.addEventListener('touchstart', e => tx = e.touches[0].clientX, {passive: true});
 lbEl.addEventListener('touchend', e => { if (tx === null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 50) lbGo(dx < 0 ? 1 : -1); else if (e.target.tagName !== 'BUTTON') lbClose(); tx = null; });
-start();
+start().catch(e => { showLoad(false); const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginMsg').innerHTML = 'Chyba při spuštění: ' + e.message; });
 </script>
 </body>
 </html>
