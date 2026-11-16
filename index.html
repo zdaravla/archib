@@ -80,7 +80,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
 #tip{position:fixed;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;box-shadow:0 4px 14px rgba(0,0,0,.15);display:none;z-index:40;font-size:13px;max-width:240px}
 #tip img{width:220px;height:140px;object-fit:cover;display:block;margin-bottom:4px;border-radius:4px}
 #fbtn,#mset,.mob{display:none}
-#login{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:20px}
+#login{display:none;overflow-wrap:anywhere;position:fixed;inset:0;background:var(--bg);z-index:50;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:20px}
 #login h1{font-size:34px;margin:0}#login .btn{font-size:17px;padding:12px 24px}
 #load{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:6px 14px;border-radius:16px;font-size:13px;z-index:45;display:none}
 @media (max-width:820px){
@@ -198,10 +198,25 @@ async function start() {
     account = (rr && rr.account) || msal.getAllAccounts()[0];
     if (!account) { const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').onclick = () => msal.loginRedirect({scopes: SCOPES}); return; }
     showLoad(true);
-    try {
+    const loadData = async () => {
       const it = await graph(`/me/drive/root:/${GP(BASE + '/Aplikace/data.js')}?$select=name,@microsoft.graph.downloadUrl`);
       const txt = await (await fetch(it['@microsoft.graph.downloadUrl'])).text();
       window.ARCHIB = JSON.parse(txt.slice(txt.indexOf('=') + 1).replace(/;\s*$/, ''));
+    };
+    try {
+      try { await loadData(); }
+      catch (e1) { // cesta nesedí – najít složku projektu v OneDrive hledáním
+        const r = await graph(`/me/drive/root/search(q='ARCHIB_Databaze_architektu')?$select=name,parentReference,folder&$top=50`);
+        const f = (r.value || []).filter(x => x.folder && x.name === 'ARCHIB_Databaze_architektu' && x.parentReference && x.parentReference.path)
+          .map(x => decodeURIComponent(x.parentReference.path.replace(/^\/drive\/root:\/?/, '')) + '/' + x.name);
+        const nb = f.find(p => /Zrcadlo/i.test(p)) || f[0];
+        if (!nb || nb === BASE) {
+          const root = await graph('/me/drive/root/children?$select=name&$top=200').catch(() => ({value: []}));
+          throw new Error(e1.message + '<br>Hledání složky ARCHIB_Databaze_architektu: ' + (f.length ? f.join(', ') : 'nenalezena (OneDrive ji možná ještě nahrává)') + '<br>V kořeni OneDrive vidím: ' + (root.value || []).map(x => x.name).join(', '));
+        }
+        BASE = nb; try { localStorage.setItem('archib_base', BASE); } catch (e) {}
+        await loadData();
+      }
     } catch (e) { showLoad(false); const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; document.getElementById('loginMsg').innerHTML = 'Data se nepodařilo načíst z OneDrive:<br>' + BASE + '/Aplikace/data.js<br>Spusťte na PC SYNC_Claude.bat nebo upravte cestu (⚙).<br><small>' + e.message + '</small>'; return; }
     showLoad(false);
   }
