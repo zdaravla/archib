@@ -113,7 +113,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
   <button id="fbtn">Filtry</button><h1>ARCH<span>IB</span></h1>
   <input id="q" placeholder="Hledat: název, město, autor, konstrukce… (např. skořepina kostel)">
   <div class="tabs"><button id="tPrehled" class="on">Přehled</button> <button id="tOsa">Časová osa</button></div>
-  <div id="info"></div><button id="mset" title="Nastavení">⚙</button>
+  <div id="info"></div><button id="mset" title="Nastavení">⚙</button><button id="acct" title="Změnit účet" style="font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;margin-left:6px;display:none">účet</button>
 </header>
 <main>
   <aside id="side"></aside>
@@ -134,7 +134,7 @@ svg text{font-family:"Segoe UI",Arial,sans-serif}
 <div id="det"><div class="box" id="detBox"></div></div>
 <div id="lb"><button class="x" onclick="lbClose()">×</button><span class="nav" style="left:10px" onclick="lbGo(-1)">‹</span><img id="lbImg" alt=""><span class="nav" style="right:10px" onclick="lbGo(1)">›</span><div class="cap" id="lbCap"></div></div>
 <div id="tip"></div>
-<div id="login"><h1>ARCH<span style="color:var(--acc)">IB</span></h1><p>Data a fotky jsou ve vašem OneDrive.<br>Přihlaste se účtem Microsoft.</p><button class="btn" id="loginBtn">Přihlásit se</button><p class="n" id="loginMsg"></p></div>
+<div id="login"><h1>ARCH<span style="color:var(--acc)">IB</span></h1><p>Data a fotky jsou ve vašem OneDrive.<br>Přihlaste se účtem Microsoft.</p><button class="btn" id="loginBtn">Přihlásit se</button><p class="n" id="loginMsg"></p><button class="btn" id="switchBtn" style="display:none">Přihlásit jiným účtem</button></div>
 <div id="load">Načítám…</div>
 <script src="config.js"></script>
 <script>
@@ -146,6 +146,11 @@ try { BASE = localStorage.getItem('archib_base') || BASE; } catch (e) {}
 // ---------- OneDrive (Microsoft Graph) ----------
 let msal = null, account = null;
 const SCOPES = ['Files.Read'];
+function switchAccount() {   // zapomenout uložený účet a vybrat jiný
+  try { Object.keys(localStorage).filter(k => k.startsWith('msal') || k.includes(CFG.clientId) || k === 'archib_base').forEach(k => localStorage.removeItem(k));
+        Object.keys(sessionStorage).filter(k => k.startsWith('msal') || k.includes(CFG.clientId)).forEach(k => sessionStorage.removeItem(k)); } catch (e) {}
+  msal.loginRedirect({scopes: SCOPES, prompt: 'select_account'});
+}
 const GP = p => p.split('/').map(encodeURIComponent).join('/');
 async function token() {
   try { return (await msal.acquireTokenSilent({scopes: SCOPES, account})).accessToken; }
@@ -206,7 +211,8 @@ async function start() {
     msal = new (window.msal || window.msalBrowser).PublicClientApplication({auth: {clientId: CFG.clientId, authority: 'https://login.microsoftonline.com/consumers', redirectUri: location.origin + location.pathname}, cache: {cacheLocation: 'localStorage'}});
     const rr = await msal.handleRedirectPromise().catch(e => { document.getElementById('loginMsg').textContent = e.message; });
     account = (rr && rr.account) || msal.getAllAccounts()[0];
-    if (!account) { const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').onclick = () => msal.loginRedirect({scopes: SCOPES}); return; }
+    if (!account) { const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').onclick = () => msal.loginRedirect({scopes: SCOPES, prompt: 'select_account'}); return; }
+    { const ab = document.getElementById('acct'); ab.textContent = account.username || 'účet'; ab.style.display = 'inline-block'; ab.onclick = () => { if (confirm('Přihlášen: ' + account.username + '\nPřihlásit jiným účtem?')) switchAccount(); }; }
     showLoad(true);
     const loadData = async () => {
       const it = await graph(`/me/drive/root:/${GP(BASE + '/Aplikace/data.js')}`);
@@ -231,7 +237,7 @@ async function start() {
         BASE = nb; try { localStorage.setItem('archib_base', BASE); } catch (e) {}
         await loadData();
       }
-    } catch (e) { showLoad(false); const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; document.getElementById('loginMsg').innerHTML = 'Data se nepodařilo načíst z OneDrive:<br>' + BASE + '/Aplikace/data.js<br>Spusťte na PC SYNC_Claude.bat nebo upravte cestu (⚙).<br><small>' + e.message + '</small>'; return; }
+    } catch (e) { showLoad(false); const l = document.getElementById('login'); l.style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; document.getElementById('loginMsg').innerHTML = 'Data se nepodařilo načíst z OneDrive:<br>' + BASE + '/Aplikace/data.js<br>Spusťte na PC SYNC_Claude.bat nebo upravte cestu (⚙).<br><b>Přihlášen účet: ' + (account.username || '?') + '</b><br><small>' + e.message + '</small>'; const sb = document.getElementById('switchBtn'); sb.style.display = 'inline-block'; sb.onclick = switchAccount; return; }
     showLoad(false);
   }
   init();
